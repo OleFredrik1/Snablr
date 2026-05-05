@@ -142,7 +142,7 @@ func shouldDescendRemoteDir(path string, depth int, opts WalkOptions, maxDepth i
 		return false
 	}
 	for _, blocked := range opts.ExcludePaths {
-		if remotePathHasPrefix(path, blocked) {
+		if remotePathExcluded(path, blocked) {
 			return false
 		}
 	}
@@ -162,7 +162,7 @@ func shouldIncludeRemoteFile(path string, depth int, opts WalkOptions, maxDepth 
 		return false
 	}
 	for _, blocked := range opts.ExcludePaths {
-		if remotePathHasPrefix(path, blocked) {
+		if remotePathExcluded(path, blocked) {
 			return false
 		}
 	}
@@ -195,4 +195,24 @@ func remotePathHasPrefix(path, prefix string) bool {
 		return false
 	}
 	return path == prefix || strings.HasPrefix(path, prefix+"/")
+}
+
+func remotePathExcluded(path, pattern string) bool {
+	path = normalizeRemotePath(path)
+	pattern = normalizeRemotePath(pattern)
+	if path == "" || pattern == "" {
+		return false
+	}
+	if remotePathHasPrefix(path, pattern) {
+		return true
+	}
+	if strings.Contains(pattern, "/") {
+		return false
+	}
+	for _, segment := range strings.Split(path, "/") {
+		if strings.EqualFold(segment, pattern) {
+			return true
+		}
+	}
+	return false
 }

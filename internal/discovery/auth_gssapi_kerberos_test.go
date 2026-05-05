@@ -13,6 +13,9 @@ import (
 	"testing"
 
 	krbgssapi "github.com/jcmturner/gokrb5/v8/gssapi"
+	"github.com/jcmturner/gokrb5/v8/iana/nametype"
+	"github.com/jcmturner/gokrb5/v8/messages"
+	"github.com/jcmturner/gokrb5/v8/types"
 )
 
 func TestKerberosBindIdentity(t *testing.T) {
@@ -148,5 +151,39 @@ func TestKerberosCCachePathSupportsFileCacheOnly(t *testing.T) {
 	_, err = kerberosCCachePath()
 	if err == nil || !strings.Contains(err.Error(), "only FILE credential caches are supported") {
 		t.Fatalf("expected unsupported cache error, got %v", err)
+	}
+}
+
+func TestNormalizeLDAPServiceTicketNameUsesServiceInstanceType(t *testing.T) {
+	t.Parallel()
+
+	tkt := messages.Ticket{
+		SName: types.PrincipalName{
+			NameType:   nametype.KRB_NT_PRINCIPAL,
+			NameString: []string{"ldap", "dc01.example.local"},
+		},
+	}
+
+	normalizeLDAPServiceTicketName(&tkt)
+
+	if tkt.SName.NameType != nametype.KRB_NT_SRV_INST {
+		t.Fatalf("LDAP ticket name type = %d, want %d", tkt.SName.NameType, nametype.KRB_NT_SRV_INST)
+	}
+}
+
+func TestNormalizeLDAPServiceTicketNameLeavesNonLDAPTicketsAlone(t *testing.T) {
+	t.Parallel()
+
+	tkt := messages.Ticket{
+		SName: types.PrincipalName{
+			NameType:   nametype.KRB_NT_PRINCIPAL,
+			NameString: []string{"HTTP", "app.example.local"},
+		},
+	}
+
+	normalizeLDAPServiceTicketName(&tkt)
+
+	if tkt.SName.NameType != nametype.KRB_NT_PRINCIPAL {
+		t.Fatalf("non-LDAP ticket name type = %d, want %d", tkt.SName.NameType, nametype.KRB_NT_PRINCIPAL)
 	}
 }

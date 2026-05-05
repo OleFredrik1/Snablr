@@ -23,6 +23,7 @@ import (
 	krbgssapi "github.com/jcmturner/gokrb5/v8/gssapi"
 	"github.com/jcmturner/gokrb5/v8/iana/chksumtype"
 	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
+	"github.com/jcmturner/gokrb5/v8/iana/nametype"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/spnego"
 	"github.com/jcmturner/gokrb5/v8/types"
@@ -219,6 +220,7 @@ func (client *kerberosGSSAPIClient) InitSecContextWithOptions(target string, inp
 			return nil, false, err
 		}
 		client.ekey = ekey
+		normalizeLDAPServiceTicketName(&tkt)
 
 		output, err := newKRB5TokenAPREQWithChannelBinding(client.Client, tkt, ekey, gssapiFlags, APOptions, client.channelBindingHash)
 		if err != nil {
@@ -254,6 +256,15 @@ func (client *kerberosGSSAPIClient) InitSecContextWithOptions(target string, inp
 		}
 
 		return make([]byte, 0), !completed, nil
+	}
+}
+
+func normalizeLDAPServiceTicketName(tkt *messages.Ticket) {
+	if tkt == nil || len(tkt.SName.NameString) == 0 {
+		return
+	}
+	if strings.EqualFold(tkt.SName.NameString[0], "ldap") {
+		tkt.SName.NameType = nametype.KRB_NT_SRV_INST
 	}
 }
 
