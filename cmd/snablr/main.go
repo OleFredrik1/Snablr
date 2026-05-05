@@ -94,6 +94,8 @@ func runScan(args []string) error {
 	noLDAP := fs.Bool("no-ldap", false, "Disable LDAP discovery when no explicit targets are supplied")
 	dc := fs.String("dc", "", "Domain controller to use for LDAP discovery")
 	baseDN := fs.String("base-dn", "", "LDAP base DN to use for discovery")
+	ldapAuth := fs.String("ldap-auth", "", "LDAP auth method: auto, simple, ntlm, or gssapi")
+	ldapTransport := fs.String("ldap-transport", "", "LDAP transport: auto, ldap, or ldaps")
 	discoverDFS := fs.Bool("discover-dfs", false, "Discover DFS namespaces and linked shares")
 	prioritizeADShares := fs.Bool("prioritize-ad-shares", false, "Prioritize SYSVOL and NETLOGON shares during scan planning")
 	onlyADShares := fs.Bool("only-ad-shares", false, "Only scan SYSVOL and NETLOGON shares")
@@ -156,6 +158,8 @@ func runScan(args []string) error {
 		NoLDAP:                     *noLDAP,
 		DomainController:           *dc,
 		BaseDN:                     *baseDN,
+		LDAPAuth:                   *ldapAuth,
+		LDAPTransport:              *ldapTransport,
 		DiscoverDFS:                *discoverDFS,
 		PrioritizeADShares:         *prioritizeADShares,
 		OnlyADShares:               *onlyADShares,
@@ -207,6 +211,8 @@ func runDiscover(args []string) error {
 	noLDAP := fs.Bool("no-ldap", false, "Disable LDAP discovery")
 	dc := fs.String("dc", "", "Domain controller to use for LDAP discovery")
 	baseDN := fs.String("base-dn", "", "LDAP base DN to use for discovery")
+	ldapAuth := fs.String("ldap-auth", "", "LDAP auth method: auto, simple, ntlm, or gssapi")
+	ldapTransport := fs.String("ldap-transport", "", "LDAP transport: auto, ldap, or ldaps")
 	discoverDFS := fs.Bool("discover-dfs", false, "Discover DFS namespaces and linked shares")
 	skipReachability := fs.Bool("skip-reachability-check", false, "Skip TCP 445 reachability testing")
 	reachabilityTimeout := fs.Int("reachability-timeout", 0, "Reachability timeout in seconds")
@@ -229,6 +235,8 @@ func runDiscover(args []string) error {
 		NoLDAP:                     *noLDAP,
 		DomainController:           *dc,
 		BaseDN:                     *baseDN,
+		LDAPAuth:                   *ldapAuth,
+		LDAPTransport:              *ldapTransport,
 		DiscoverDFS:                *discoverDFS,
 		SkipReachabilityCheck:      *skipReachability,
 		ReachabilityTimeoutSeconds: *reachabilityTimeout,
@@ -533,6 +541,7 @@ func printScanUsage(fs *flag.FlagSet) {
 	fmt.Println("  snablr scan --targets 10.0.0.5 --username USER --password PASS")
 	fmt.Println("  snablr scan --username USER --password PASS")
 	fmt.Println("  snablr scan --domain example.local --dc dc01.example.local --username USER --password PASS")
+	fmt.Println("  snablr scan --dc ldaps://dc01.example.local --ldap-transport ldaps --ldap-auth simple --username USER --password PASS")
 	fmt.Println("  snablr scan --output-format all --json-out results.json --html-out report.html")
 	fmt.Println("  snablr scan --share Finance --path Reports/ --max-depth 4")
 	fmt.Println("  snablr scan --baseline previous-results.json --output-format all --json-out results.json --html-out report.html")
@@ -570,6 +579,7 @@ func printDiscoverUsage(fs *flag.FlagSet) {
 	fmt.Println("  snablr discover --username USER --password PASS")
 	fmt.Println("  snablr discover --targets fileserver01,fileserver02 --skip-reachability-check")
 	fmt.Println("  snablr discover --discover-dfs --domain example.local --dc dc01.example.local --username USER --password PASS")
+	fmt.Println("  snablr discover --dc ldaps://dc01.example.local --ldap-transport ldaps --ldap-auth ntlm --username USER --password PASS")
 	fmt.Println()
 	fmt.Println("Flags:")
 	fs.PrintDefaults()

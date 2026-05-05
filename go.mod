@@ -7,6 +7,7 @@ replace github.com/mattn/go-sqlite3 => ./third_party/go-sqlite3
 require gopkg.in/yaml.v3 v3.0.1
 
 require (
+	github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0

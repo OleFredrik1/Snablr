@@ -20,6 +20,8 @@ func Default() Config {
 			Domain:                     "",
 			DomainController:           "",
 			BaseDN:                     "",
+			LDAPAuth:                   "auto",
+			LDAPTransport:              "auto",
 			DiscoverDFS:                false,
 			PrioritizeADShares:         true,
 			OnlyADShares:               false,

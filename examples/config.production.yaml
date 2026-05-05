@@ -23,6 +23,8 @@ scan:
   domain: "example.local"
   dc: ""
   base_dn: ""
+  ldap_auth: auto
+  ldap_transport: auto
   discover_dfs: true
   prioritize_ad_shares: true
   only_ad_shares: false

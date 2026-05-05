@@ -109,6 +109,12 @@ func applyScanOverrides(cfg *config.Config, opts ScanOptions) {
 	if strings.TrimSpace(opts.BaseDN) != "" {
 		cfg.Scan.BaseDN = opts.BaseDN
 	}
+	if strings.TrimSpace(opts.LDAPAuth) != "" {
+		cfg.Scan.LDAPAuth = opts.LDAPAuth
+	}
+	if strings.TrimSpace(opts.LDAPTransport) != "" {
+		cfg.Scan.LDAPTransport = opts.LDAPTransport
+	}
 	if opts.DiscoverDFS {
 		cfg.Scan.DiscoverDFS = true
 	}
@@ -219,6 +225,12 @@ func applyDiscoverOverrides(cfg *config.Config, opts DiscoverOptions) {
 	}
 	if strings.TrimSpace(opts.BaseDN) != "" {
 		cfg.Scan.BaseDN = opts.BaseDN
+	}
+	if strings.TrimSpace(opts.LDAPAuth) != "" {
+		cfg.Scan.LDAPAuth = opts.LDAPAuth
+	}
+	if strings.TrimSpace(opts.LDAPTransport) != "" {
+		cfg.Scan.LDAPTransport = opts.LDAPTransport
 	}
 	if opts.DiscoverDFS {
 		cfg.Scan.DiscoverDFS = true

@@ -207,3 +207,133 @@ func TestLDAPAddressUsesCorrectDefaultPorts(t *testing.T) {
 		})
 	}
 }
+
+func TestLDAPEndpointForControllerHonorsTransportHints(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name      string
+		dc        string
+		transport string
+		want      ldapEndpoint
+	}{
+		{
+			name:      "ldaps url",
+			dc:        "ldaps://dc01.example.local",
+			transport: ldapTransportAuto,
+			want: ldapEndpoint{
+				Transport:         ldapTransportLDAPS,
+				Address:           "dc01.example.local:636",
+				Host:              "dc01.example.local",
+				ExplicitTransport: true,
+			},
+		},
+		{
+			name:      "ldap url with port",
+			dc:        "ldap://dc01.example.local:1389",
+			transport: ldapTransportAuto,
+			want: ldapEndpoint{
+				Transport:         ldapTransportLDAP,
+				Address:           "dc01.example.local:1389",
+				Host:              "dc01.example.local",
+				ExplicitTransport: true,
+			},
+		},
+		{
+			name:      "auto treats port 636 as ldaps",
+			dc:        "dc01.example.local:636",
+			transport: ldapTransportAuto,
+			want: ldapEndpoint{
+				Transport: ldapTransportLDAPS,
+				Address:   "dc01.example.local:636",
+				Host:      "dc01.example.local",
+			},
+		},
+		{
+			name:      "forced ldaps",
+			dc:        "dc01.example.local",
+			transport: ldapTransportLDAPS,
+			want: ldapEndpoint{
+				Transport: ldapTransportLDAPS,
+				Address:   "dc01.example.local:636",
+				Host:      "dc01.example.local",
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := ldapEndpointForController(tc.dc, tc.transport)
+			if err != nil {
+				t.Fatalf("ldapEndpointForController returned error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Fatalf("unexpected endpoint:\nwant: %#v\ngot:  %#v", tc.want, got)
+			}
+		})
+	}
+}
+
+func TestLDAPEndpointForControllerRejectsTransportConflict(t *testing.T) {
+	t.Parallel()
+
+	_, err := ldapEndpointForController("ldap://dc01.example.local", ldapTransportLDAPS)
+	if err == nil {
+		t.Fatal("expected conflicting scheme and ldap_transport to fail")
+	}
+}
+
+func TestNormalizeLDAPAuthMethod(t *testing.T) {
+	t.Parallel()
+
+	cases := map[string]string{
+		"":          ldapAuthAuto,
+		"auto":      ldapAuthAuto,
+		"simple":    ldapAuthSimple,
+		"ntlm":      ldapAuthNTLM,
+		"gssapi":    ldapAuthGSSAPI,
+		"kerberos":  ldapAuthGSSAPI,
+		"negotiate": ldapAuthGSSAPI,
+		"sspi":      ldapAuthGSSAPI,
+	}
+
+	for input, want := range cases {
+		got, err := normalizeLDAPAuthMethod(input)
+		if err != nil {
+			t.Fatalf("normalizeLDAPAuthMethod(%q) returned error: %v", input, err)
+		}
+		if got != want {
+			t.Fatalf("normalizeLDAPAuthMethod(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
+
+func TestNTLMBindIdentity(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		username   string
+		domain     string
+		wantDomain string
+		wantUser   string
+	}{
+		{username: `EXAMPLE\alice`, domain: "example.local", wantDomain: "EXAMPLE", wantUser: "alice"},
+		{username: "alice@example.local", domain: "", wantDomain: "example.local", wantUser: "alice@example.local"},
+		{username: "alice", domain: "example.local", wantDomain: "EXAMPLE", wantUser: "alice"},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.username, func(t *testing.T) {
+			t.Parallel()
+
+			gotDomain, gotUser := ntlmBindIdentity(tc.username, tc.domain)
+			if gotDomain != tc.wantDomain || gotUser != tc.wantUser {
+				t.Fatalf("ntlmBindIdentity(%q, %q) = (%q, %q), want (%q, %q)", tc.username, tc.domain, gotDomain, gotUser, tc.wantDomain, tc.wantUser)
+			}
+		})
+	}
+}

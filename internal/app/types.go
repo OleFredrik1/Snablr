@@ -19,6 +19,8 @@ type ScanOptions struct {
 	NoLDAP                     bool
 	DomainController           string
 	BaseDN                     string
+	LDAPAuth                   string
+	LDAPTransport              string
 	DiscoverDFS                bool
 	PrioritizeADShares         bool
 	OnlyADShares               bool
@@ -105,6 +107,8 @@ type DiscoverOptions struct {
 	NoLDAP                     bool
 	DomainController           string
 	BaseDN                     string
+	LDAPAuth                   string
+	LDAPTransport              string
 	DiscoverDFS                bool
 	SkipReachabilityCheck      bool
 	ReachabilityTimeoutSeconds int

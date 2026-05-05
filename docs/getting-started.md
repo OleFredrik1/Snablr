@@ -199,8 +199,9 @@ The flow is:
 1. detect domain context from environment, hostname, or resolver settings
 2. discover a domain controller through DNS SRV lookups or `--dc`
 3. query LDAP RootDSE for the default naming context
-4. enumerate computer objects
-5. merge those hosts into the normal scan pipeline
+4. bind with the configured LDAP transport/auth method
+5. enumerate computer objects
+6. merge those hosts into the normal scan pipeline
 
 Useful overrides:
 
@@ -208,6 +209,8 @@ Useful overrides:
 - `--domain`
 - `--dc`
 - `--base-dn`
+- `--ldap-transport`
+- `--ldap-auth`
 
 ## How SMB Scanning Fits In
 

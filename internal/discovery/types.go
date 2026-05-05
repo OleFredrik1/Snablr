@@ -40,6 +40,8 @@ type LDAPOptions struct {
 	Domain           string
 	DomainController string
 	BaseDN           string
+	AuthMethod       string
+	Transport        string
 	Timeout          time.Duration
 	PageSize         uint32
 }

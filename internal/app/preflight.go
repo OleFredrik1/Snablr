@@ -89,6 +89,8 @@ func scanPreflightValidators(cfg config.Config, logger *logx.Logger) []preflight
 				Domain:           cfg.Scan.Domain,
 				DomainController: cfg.Scan.DomainController,
 				BaseDN:           cfg.Scan.BaseDN,
+				AuthMethod:       cfg.Scan.LDAPAuth,
+				Transport:        cfg.Scan.LDAPTransport,
 				Timeout:          cfg.Scan.ReachabilityTimeout(),
 			},
 			logger: logger,

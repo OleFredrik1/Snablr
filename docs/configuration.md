@@ -115,6 +115,10 @@ snablr scan --config examples/config.domain.yaml --user 'DOMAIN\user' --pass 'RE
   Manual domain controller override
 - `base_dn`
   Manual LDAP search base override
+- `ldap_auth`
+  LDAP bind method: `auto`, `simple`, `ntlm`, or `gssapi`
+- `ldap_transport`
+  LDAP transport: `auto`, `ldap`, or `ldaps`
 - `discover_dfs`
   Enable DFS discovery so linked shares can be added to the pipeline
 
@@ -123,14 +127,18 @@ How LDAP discovery works:
 1. Snablr checks for explicit targets
 2. if none are present, it tries to detect domain context
 3. it finds a domain controller or uses `dc`
-4. it attempts LDAP simple bind with the configured credentials
-5. if the server requires stronger authentication or signing, it retries over LDAPS automatically
-6. it queries LDAP for computer objects
-7. it merges those discovered hosts into the target pipeline
+4. it connects with `ldap_transport` (`auto` starts with LDAP unless `dc` uses `ldaps://` or port `636`)
+5. it binds with `ldap_auth` (`auto` keeps the existing simple-bind behavior)
+6. if an automatic LDAP bind reports stronger-authentication or signing requirements, it retries over LDAPS
+7. it queries LDAP for computer objects
+8. it merges those discovered hosts into the target pipeline
 
 Notes:
 
-- the automatic fallback is transport-level only; it does not currently switch to Kerberos bind automatically
+- use `ldap_transport: ldaps` or `--ldap-transport ldaps` in environments where port `389` is blocked or policy requires TLS from the first packet
+- `ldap_auth: gssapi` uses Windows SSPI; over LDAPS it includes a TLS server-endpoint channel binding token
+- `ldap_auth: ntlm` is available for environments that reject simple binds but still allow NTLM SASL over LDAP/LDAPS
+- the automatic fallback is transport-level only; it does not switch to GSSAPI automatically
 - logs indicate which LDAP method was used so discovery behavior stays transparent during troubleshooting
 
 ### Share And Path Filters
@@ -636,7 +644,8 @@ Override discovery behavior:
 snablr scan \
   --config examples/config.domain.yaml \
   --dc dc01.example.local \
-  --base-dn 'OU=Servers,DC=example,DC=local'
+  --base-dn 'OU=Servers,DC=example,DC=local' \
+  --ldap-transport ldaps
 ```
 
 Override WIM inspection for one run:

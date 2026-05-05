@@ -138,6 +138,8 @@ func collectTargets(ctx context.Context, cfg config.ScanConfig, logger Logger) (
 			Domain:           cfg.Domain,
 			DomainController: cfg.DomainController,
 			BaseDN:           cfg.BaseDN,
+			AuthMethod:       cfg.LDAPAuth,
+			Transport:        cfg.LDAPTransport,
 		}, logger)
 		if err != nil {
 			return collectedTargets{}, err
@@ -164,6 +166,8 @@ func collectTargets(ctx context.Context, cfg config.ScanConfig, logger Logger) (
 			Domain:           cfg.Domain,
 			DomainController: cfg.DomainController,
 			BaseDN:           cfg.BaseDN,
+			AuthMethod:       cfg.LDAPAuth,
+			Transport:        cfg.LDAPTransport,
 		}, logger)
 		if err != nil {
 			if logger != nil {

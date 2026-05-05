@@ -47,6 +47,8 @@ type ScanConfig struct {
 	Domain                     string   `yaml:"domain"`
 	DomainController           string   `yaml:"dc"`
 	BaseDN                     string   `yaml:"base_dn"`
+	LDAPAuth                   string   `yaml:"ldap_auth"`
+	LDAPTransport              string   `yaml:"ldap_transport"`
 	DiscoverDFS                bool     `yaml:"discover_dfs"`
 	PrioritizeADShares         bool     `yaml:"prioritize_ad_shares"`
 	OnlyADShares               bool     `yaml:"only_ad_shares"`

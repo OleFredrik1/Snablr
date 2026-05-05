@@ -11,7 +11,7 @@ Snablr is intended for authorized defensive security work only. Run it only agai
 ## Feature Overview
 
 - Domain-aware target discovery with LDAP and optional DFS discovery
-- Automatic LDAP-to-LDAPS fallback when simple bind hits common signing requirements
+- LDAP/LDAPS discovery with explicit transport/auth controls, signing-aware fallback, and Windows SSPI LDAPS channel binding
 - SMB share enumeration, metadata collection, and recursive file walking
 - YAML rule packs for filename, extension, and content matching
 - Built-in database artifact and connection-material inspection for common enterprise formats
@@ -445,10 +445,11 @@ When no manual targets are supplied, Snablr can:
 1. detect the domain from environment variables, hostname data, or resolver configuration
 2. find a domain controller through DNS SRV lookups
 3. query LDAP RootDSE for the default naming context
-4. attempt LDAP simple bind with the configured credentials
-5. automatically retry over LDAPS if the server requires stronger authentication or signing
-6. enumerate computer objects from that base DN
-7. merge and deduplicate those discovered hosts into the normal target pipeline
+4. connect with the configured LDAP transport (`auto`, `ldap`, or `ldaps`)
+5. bind with the configured LDAP auth method (`auto`, `simple`, `ntlm`, or `gssapi`)
+6. automatically retry over LDAPS in auto mode if the server requires stronger authentication or signing
+7. enumerate computer objects from that base DN
+8. merge and deduplicate those discovered hosts into the normal target pipeline
 
 You can override discovery with:
 
@@ -456,6 +457,8 @@ You can override discovery with:
 - `--domain`
 - `--dc`
 - `--base-dn`
+- `--ldap-transport`
+- `--ldap-auth`
 
 See:
 - [Getting Started](docs/getting-started.md)

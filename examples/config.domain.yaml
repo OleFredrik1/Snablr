@@ -27,6 +27,8 @@ scan:
   domain: "example.local"
   dc: ""
   base_dn: ""
+  ldap_auth: auto
+  ldap_transport: auto
   discover_dfs: true
 
   # Keep AD shares high priority, but do not restrict to them.

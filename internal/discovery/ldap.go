@@ -3,7 +3,6 @@ package discovery
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
@@ -111,17 +110,12 @@ func preBindRootDSE(conn *ldap.Conn, domainContext *DomainContext, logger Logger
 }
 
 func dialLDAP(dc string, timeout time.Duration) (*ldap.Conn, error) {
-	address := dc
-	if _, _, err := net.SplitHostPort(dc); err != nil {
-		address = net.JoinHostPort(dc, fmt.Sprintf("%d", defaultLDAPPort))
-	}
-
-	conn, err := ldap.DialURL("ldap://"+address, ldap.DialWithDialer(&net.Dialer{Timeout: timeout}))
+	endpoint, err := ldapEndpointForController(dc, ldapTransportLDAP)
 	if err != nil {
-		return nil, fmt.Errorf("ldap discovery: connect to %s failed: %w", address, err)
+		return nil, err
 	}
-	conn.SetTimeout(timeout)
-	return conn, nil
+	conn, _, err := dialLDAPEndpoint(endpoint, timeout)
+	return conn, err
 }
 
 type bindCandidate struct {
