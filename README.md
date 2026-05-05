@@ -11,7 +11,7 @@ Snablr is intended for authorized defensive security work only. Run it only agai
 ## Feature Overview
 
 - Domain-aware target discovery with LDAP and optional DFS discovery
-- LDAP/LDAPS discovery with explicit transport/auth controls, signing-aware fallback, and Windows SSPI LDAPS channel binding
+- LDAP/LDAPS discovery with explicit transport/auth controls, signing-aware fallback, and GSSAPI LDAPS channel binding on Windows and Linux/non-Windows
 - SMB share enumeration, metadata collection, and recursive file walking
 - YAML rule packs for filename, extension, and content matching
 - Built-in database artifact and connection-material inspection for common enterprise formats
@@ -459,6 +459,8 @@ You can override discovery with:
 - `--base-dn`
 - `--ldap-transport`
 - `--ldap-auth`
+
+Use `--ldap-auth gssapi --ldap-transport ldaps` for Active Directory environments that enforce LDAPS channel binding. Plain `ldap://389` GSSAPI signing is not implemented because go-ldap does not expose SASL security-layer wrapping for LDAP messages after bind.
 
 See:
 - [Getting Started](docs/getting-started.md)

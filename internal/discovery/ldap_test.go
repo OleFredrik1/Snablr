@@ -3,6 +3,7 @@ package discovery
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/go-ldap/ldap/v3"
@@ -335,5 +336,48 @@ func TestNTLMBindIdentity(t *testing.T) {
 				t.Fatalf("ntlmBindIdentity(%q, %q) = (%q, %q), want (%q, %q)", tc.username, tc.domain, gotDomain, gotUser, tc.wantDomain, tc.wantUser)
 			}
 		})
+	}
+}
+
+func TestDecorateNTLMBindErrorExplainsChannelBindingFailure(t *testing.T) {
+	t.Parallel()
+
+	err := decorateNTLMBindError(
+		fmt.Errorf(`LDAP Result Code 49 "Invalid Credentials": 80090346: LdapErr: DSID-0C09089F, comment: AcceptSecurityContext error, data 80090346, v4563`),
+		ldapTransportLDAPS,
+		`EXAMPLE\alice`,
+	)
+	message := err.Error()
+	for _, want := range []string{
+		"LDAP channel binding is required",
+		"go-ldap's NTLM bind does not send a channel binding token",
+		"--ldap-auth gssapi --ldap-transport ldaps",
+	} {
+		if !strings.Contains(message, want) {
+			t.Fatalf("expected decorated NTLM error to contain %q, got %q", want, message)
+		}
+	}
+}
+
+func TestDecorateNTLMBindErrorExplainsLDAPSigningFailure(t *testing.T) {
+	t.Parallel()
+
+	err := decorateNTLMBindError(
+		&ldap.Error{
+			ResultCode: ldap.LDAPResultStrongAuthRequired,
+			Err:        fmt.Errorf("The server requires binds to turn on integrity checking if SSL\\TLS are not already active on the connection"),
+		},
+		ldapTransportLDAP,
+		`EXAMPLE\alice`,
+	)
+	message := err.Error()
+	for _, want := range []string{
+		"LDAP signing is required on port 389",
+		"go-ldap's NTLM bind does not negotiate an LDAP SASL signing layer",
+		"--ldap-transport ldaps",
+	} {
+		if !strings.Contains(message, want) {
+			t.Fatalf("expected decorated NTLM error to contain %q, got %q", want, message)
+		}
 	}
 }

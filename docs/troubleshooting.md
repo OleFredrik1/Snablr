@@ -76,7 +76,7 @@ No targets are discovered when running:
 - try `--domain <fqdn>` explicitly
 - try `--dc <hostname>` explicitly
 - try `--dc ldaps://<hostname>` or `--ldap-transport ldaps` when LDAP signing policy requires TLS immediately
-- try `--ldap-auth ntlm` or, on Windows, `--ldap-auth gssapi --ldap-transport ldaps` when simple bind is disabled
+- try `--ldap-auth gssapi --ldap-transport ldaps` when LDAPS channel binding is required and simple bind is disabled
 - try `--base-dn 'DC=example,DC=local'` explicitly
 - raise logging with `--log-level debug`
 - confirm port and name resolution to the target DC
@@ -85,7 +85,9 @@ Current bind behavior:
 
 - Snablr attempts LDAP simple bind first when `ldap_auth` is `auto`
 - if the server returns stronger-auth-required or confidentiality-required style errors in auto mode, Snablr retries over LDAPS automatically
-- `ldap_auth=gssapi` uses Windows SSPI and includes LDAPS channel binding when TLS is active
+- `ldap_auth=gssapi` uses Windows SSPI on Windows and Kerberos via gokrb5 on Linux/non-Windows; it includes LDAPS channel binding when TLS is active
+- Snablr does not currently implement GSSAPI SASL security-layer wrapping for plain `ldap://389`, so use LDAPS when signing policy requires integrity
+- `ldap_auth=ntlm` does not satisfy LDAP signing on port `389` or LDAPS channel-binding enforcement; AD commonly reports channel-binding failure as `80090346`
 - if both `389` and `636` are blocked or unusable, LDAP discovery still fails and explicit targets are the right fallback
 
 If LDAP discovery remains unreliable, fall back to explicit targets until domain context is confirmed.

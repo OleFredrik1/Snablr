@@ -327,7 +327,7 @@ func bindLDAPNTLM(conn *ldap.Conn, transport string, opts LDAPOptions, domain st
 
 	authDomain, authUsername := ntlmBindIdentity(username, domain)
 	if err := conn.NTLMBind(authDomain, authUsername, opts.Password); err != nil {
-		return "", fmt.Errorf("ldap discovery: ntlm bind failed for %s: %w", displayBindIdentity(authDomain, authUsername), err)
+		return "", decorateNTLMBindError(err, transport, displayBindIdentity(authDomain, authUsername))
 	}
 
 	method := transport + "-ntlm"
@@ -355,6 +355,41 @@ func displayBindIdentity(domain, username string) string {
 		return username
 	}
 	return domain + `\` + username
+}
+
+func decorateNTLMBindError(err error, transport, identity string) error {
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case isLDAPChannelBindingError(err):
+		return fmt.Errorf("ldap discovery: ntlm bind failed for %s: AD rejected NTLM over LDAPS because LDAP channel binding is required (SEC_E_BAD_BINDINGS / 80090346); go-ldap's NTLM bind does not send a channel binding token, so use --ldap-auth gssapi --ldap-transport ldaps or --ldap-auth simple --ldap-transport ldaps if simple bind is allowed: %w", identity, err)
+	case transport == ldapTransportLDAP && requiresLDAPSigning(err):
+		return fmt.Errorf("ldap discovery: ntlm bind failed for %s: LDAP signing is required on port 389, but go-ldap's NTLM bind does not negotiate an LDAP SASL signing layer; use --ldap-transport ldaps, and if channel binding is enforced use --ldap-auth gssapi --ldap-transport ldaps: %w", identity, err)
+	default:
+		return fmt.Errorf("ldap discovery: ntlm bind failed for %s: %w", identity, err)
+	}
+}
+
+func isLDAPChannelBindingError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	message := strings.ToLower(err.Error())
+	channelBindingHints := []string{
+		"80090346",
+		"sec_e_bad_bindings",
+		"bad bindings",
+		"channel binding",
+	}
+	for _, hint := range channelBindingHints {
+		if strings.Contains(message, hint) {
+			return true
+		}
+	}
+	return false
 }
 
 func requiresLDAPSigning(err error) bool {

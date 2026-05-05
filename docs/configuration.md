@@ -136,8 +136,9 @@ How LDAP discovery works:
 Notes:
 
 - use `ldap_transport: ldaps` or `--ldap-transport ldaps` in environments where port `389` is blocked or policy requires TLS from the first packet
-- `ldap_auth: gssapi` uses Windows SSPI; over LDAPS it includes a TLS server-endpoint channel binding token
-- `ldap_auth: ntlm` is available for environments that reject simple binds but still allow NTLM SASL over LDAP/LDAPS
+- `ldap_auth: gssapi` uses Windows SSPI on Windows and Kerberos via gokrb5 on Linux/non-Windows; over LDAPS it includes a TLS server-endpoint channel binding token
+- plain `ldap://389` GSSAPI signing is not implemented because go-ldap does not expose SASL security-layer wrapping for LDAP messages after bind; use LDAPS when signing policy requires integrity
+- `ldap_auth: ntlm` uses the go-ldap NTLM bind path, which does not provide LDAP signing on port `389` or LDAPS channel binding; use it only where those policies are not enforced
 - the automatic fallback is transport-level only; it does not switch to GSSAPI automatically
 - logs indicate which LDAP method was used so discovery behavior stays transparent during troubleshooting
 

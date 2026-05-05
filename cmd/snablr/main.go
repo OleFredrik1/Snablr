@@ -579,7 +579,7 @@ func printDiscoverUsage(fs *flag.FlagSet) {
 	fmt.Println("  snablr discover --username USER --password PASS")
 	fmt.Println("  snablr discover --targets fileserver01,fileserver02 --skip-reachability-check")
 	fmt.Println("  snablr discover --discover-dfs --domain example.local --dc dc01.example.local --username USER --password PASS")
-	fmt.Println("  snablr discover --dc ldaps://dc01.example.local --ldap-transport ldaps --ldap-auth ntlm --username USER --password PASS")
+	fmt.Println("  snablr discover --dc ldaps://dc01.example.local --ldap-transport ldaps --ldap-auth simple --username USER --password PASS")
 	fmt.Println()
 	fmt.Println("Flags:")
 	fs.PrintDefaults()
