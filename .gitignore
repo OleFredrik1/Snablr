@@ -1,6 +1,7 @@
 # Build and release artifacts
 /bin/
 /dist/
+ldap/
 
 # Common generated scan outputs
 /results.json
