@@ -55,6 +55,17 @@ func TestApplyScanOverridesAppliesExplicitWIMCLIOverrides(t *testing.T) {
 	}
 }
 
+func TestApplyScanOverridesAppliesSMBOperationTimeout(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default()
+	applyScanOverrides(&cfg, ScanOptions{SMBOperationTimeoutSeconds: 12})
+
+	if cfg.Scan.SMBOperationTimeoutSeconds != 12 {
+		t.Fatalf("expected SMB operation timeout override, got %d", cfg.Scan.SMBOperationTimeoutSeconds)
+	}
+}
+
 func TestApplyScanOverridesAppliesWIMOverridesAfterProfileSelection(t *testing.T) {
 	t.Parallel()
 

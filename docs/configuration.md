@@ -163,6 +163,8 @@ These filters are applied early during share selection and file walking so they 
   Skip TCP `445` reachability testing
 - `reachability_timeout_seconds`
   Timeout for SMB reachability checks
+- `smb_operation_timeout_seconds`
+  Timeout for SMB metadata operations such as share listing, mounting, and directory walking. If a host times out during these operations, Snablr skips the rest of that host and continues with the next target.
 
 Recommended default:
 - keep reachability enabled for larger scans to reduce wasted SMB connection attempts

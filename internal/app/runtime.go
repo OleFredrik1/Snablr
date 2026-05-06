@@ -148,6 +148,9 @@ func applyScanOverrides(cfg *config.Config, opts ScanOptions) {
 	if opts.ReachabilityTimeoutSeconds > 0 {
 		cfg.Scan.ReachabilityTimeoutSeconds = opts.ReachabilityTimeoutSeconds
 	}
+	if opts.SMBOperationTimeoutSeconds > 0 {
+		cfg.Scan.SMBOperationTimeoutSeconds = opts.SMBOperationTimeoutSeconds
+	}
 	if strings.TrimSpace(opts.OutputFormat) != "" {
 		cfg.Output.Format = opts.OutputFormat
 	}

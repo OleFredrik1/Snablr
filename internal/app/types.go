@@ -32,6 +32,7 @@ type ScanOptions struct {
 	Resume                     bool
 	SkipReachabilityCheck      bool
 	ReachabilityTimeoutSeconds int
+	SMBOperationTimeoutSeconds int
 	OutputFormat               string
 	NoTUI                      bool
 	JSONOut                    string

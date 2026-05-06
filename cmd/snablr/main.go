@@ -107,6 +107,7 @@ func runScan(args []string) error {
 	resume := fs.Bool("resume", false, "Resume from an existing checkpoint file")
 	skipReachability := fs.Bool("skip-reachability-check", false, "Skip TCP 445 reachability testing before scanning")
 	reachabilityTimeout := fs.Int("reachability-timeout", 0, "Reachability timeout in seconds")
+	smbOperationTimeout := fs.Int("smb-operation-timeout", 0, "SMB metadata operation timeout in seconds")
 	outputFormat := fs.String("output-format", "", "Output format: console, json, html, all, or a comma-separated combination like html,json")
 	noTUI := fs.Bool("no-tui", false, "Disable the Bubble Tea live console UI and use plain stdout console output")
 	jsonOut := fs.String("json-out", "", "Path to JSON output file")
@@ -171,6 +172,7 @@ func runScan(args []string) error {
 		Resume:                     *resume,
 		SkipReachabilityCheck:      *skipReachability,
 		ReachabilityTimeoutSeconds: *reachabilityTimeout,
+		SMBOperationTimeoutSeconds: *smbOperationTimeout,
 		OutputFormat:               *outputFormat,
 		NoTUI:                      *noTUI,
 		JSONOut:                    *jsonOut,

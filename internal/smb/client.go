@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,7 @@ import (
 const (
 	defaultPort        = "445"
 	defaultDialTimeout = 5 * time.Second
+	defaultOpTimeout   = 30 * time.Second
 	defaultMaxDepth    = 64
 	defaultMaxReadSize = 4 * 1024 * 1024
 )
@@ -58,6 +60,7 @@ type Client struct {
 	domain     string
 
 	dialTimeout time.Duration
+	opTimeout   time.Duration
 	maxDepth    int
 	maxReadSize int64
 
@@ -68,6 +71,7 @@ type Client struct {
 func NewClient() *Client {
 	return &Client{
 		dialTimeout: defaultDialTimeout,
+		opTimeout:   defaultOpTimeout,
 		maxDepth:    defaultMaxDepth,
 		maxReadSize: defaultMaxReadSize,
 	}
@@ -77,6 +81,12 @@ func (c *Client) SetMaxReadSize(limit int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.maxReadSize = limit
+}
+
+func (c *Client) SetOperationTimeout(timeout time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.opTimeout = timeout
 }
 
 func (c *Client) Connect(host, user, pass string) error {
@@ -200,6 +210,59 @@ func (c *Client) mountShare(share string) (*smb2.Share, error) {
 		return nil, fmt.Errorf("mount %s: %w", mountPath, err)
 	}
 	return fs, nil
+}
+
+func (c *Client) mountShareWithDeadline(share string) (*smb2.Share, error) {
+	clearDeadline := c.setOperationDeadline()
+	defer clearDeadline()
+	return c.mountShare(share)
+}
+
+func (c *Client) umountShareWithDeadline(fs *smb2.Share) {
+	if fs == nil {
+		return
+	}
+	clearDeadline := c.setOperationDeadline()
+	defer clearDeadline()
+	_ = fs.Umount()
+}
+
+func (c *Client) setOperationDeadline() func() {
+	c.mu.Lock()
+	conn := c.conn
+	timeout := c.opTimeout
+	if conn == nil || timeout <= 0 {
+		c.mu.Unlock()
+		return func() {}
+	}
+	_ = conn.SetDeadline(time.Now().Add(timeout))
+	c.mu.Unlock()
+
+	return func() {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		if c.conn == conn {
+			_ = conn.SetDeadline(time.Time{})
+		}
+	}
+}
+
+func IsTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		return true
+	}
+
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "i/o timeout") ||
+		strings.Contains(message, "operation timed out")
 }
 
 func splitHost(host string) (serverName, dialAddr string, err error) {

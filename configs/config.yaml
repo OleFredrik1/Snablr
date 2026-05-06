@@ -30,6 +30,7 @@ scan:
   resume: false
   skip_reachability_check: false
   reachability_timeout_seconds: 3
+  smb_operation_timeout_seconds: 30
 
 archives:
   enabled: true

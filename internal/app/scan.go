@@ -31,6 +31,7 @@ var (
 	runScanPreflightFunc = runScanPreflight
 	newOutputWriterFunc  = output.NewWriter
 	resolveTargetsFunc   = discovery.Resolve
+	errHostSMBTimeout    = errors.New("host SMB operation timed out")
 )
 
 func RunScan(ctx context.Context, opts ScanOptions) (err error) {
@@ -282,6 +283,14 @@ func RunScan(ctx context.Context, opts ScanOptions) (err error) {
 				}
 				break
 			}
+			if errors.Is(err, errHostSMBTimeout) {
+				logger.Warnf("skipping host %s after SMB timeout: %v", target.Host, err)
+				output.MarkTargetProcessed(sink)
+				if progress != nil {
+					progress.MarkTargetProcessed()
+				}
+				continue
+			}
 			errs = append(errs, err)
 			output.MarkTargetProcessed(sink)
 			if progress != nil {
@@ -323,14 +332,21 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 
 	client := smb.NewClient()
 	client.SetMaxReadSize(scanReadLimit(cfg))
+	client.SetOperationTimeout(cfg.Scan.SMBOperationTimeout())
 	defer client.Close()
 
 	if err := client.Connect(host, cfg.Scan.Username, cfg.Scan.Password); err != nil {
+		if smb.IsTimeoutError(err) {
+			return fmt.Errorf("%w: %s: connect failed: %v", errHostSMBTimeout, host, err)
+		}
 		return fmt.Errorf("%s: connect failed: %w", host, err)
 	}
 
 	shares, err := client.ListShares()
 	if err != nil {
+		if smb.IsTimeoutError(err) {
+			return fmt.Errorf("%w: %s: list shares failed: %v", errHostSMBTimeout, host, err)
+		}
 		return fmt.Errorf("%s: list shares failed: %w", host, err)
 	}
 
@@ -412,6 +428,7 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 	}()
 
 	var walkErrs []error
+	hostTimedOut := false
 	for _, sharePlan := range plannedShares {
 		if checkpoints != nil && checkpoints.ShouldSkipShare(host, sharePlan.Share) {
 			logger.Infof("resume: skipping completed share %s/%s", host, sharePlan.Share)
@@ -535,6 +552,16 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 			return nil
 		})
 		if err != nil {
+			if smb.IsTimeoutError(err) {
+				logger.Warnf("SMB operation timed out while walking %s/%s; skipping remaining shares on host", host, shareName)
+				if checkpoints != nil {
+					checkpoints.AbortShare(host, shareName)
+				}
+				hostTimedOut = true
+				cancel()
+				_ = client.Close()
+				break
+			}
 			logger.Warnf("walk failed for %s/%s: %v", host, shareName, err)
 			if checkpoints != nil {
 				checkpoints.AbortShare(host, shareName)
@@ -556,6 +583,9 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 
 	close(jobs)
 	poolErr := <-poolErrCh
+	if hostTimedOut {
+		return fmt.Errorf("%w: %s", errHostSMBTimeout, host)
+	}
 	if poolErr != nil {
 		return poolErr
 	}

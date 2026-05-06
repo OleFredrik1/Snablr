@@ -40,7 +40,9 @@ func (c *Client) ListShares() ([]ShareInfo, error) {
 		return nil, err
 	}
 
+	clearDeadline := c.setOperationDeadline()
 	shares, err := session.ListSharenames()
+	clearDeadline()
 	if err != nil {
 		return nil, fmt.Errorf("list shares: %w", err)
 	}
@@ -52,6 +54,9 @@ func (c *Client) ListShares() ([]ShareInfo, error) {
 		}
 
 		if err := c.checkShareAccess(share); err != nil {
+			if IsTimeoutError(err) {
+				return nil, fmt.Errorf("check access %s: %w", share, err)
+			}
 			if isPermissionError(err) {
 				continue
 			}
@@ -69,13 +74,15 @@ func (c *Client) ListShares() ([]ShareInfo, error) {
 }
 
 func (c *Client) checkShareAccess(share string) error {
-	fs, err := c.mountShare(share)
+	fs, err := c.mountShareWithDeadline(share)
 	if err != nil {
 		return err
 	}
-	defer fs.Umount()
+	defer c.umountShareWithDeadline(fs)
 
+	clearDeadline := c.setOperationDeadline()
 	_, err = fs.ReadDir("")
+	clearDeadline()
 	if err == nil || os.IsNotExist(err) {
 		return nil
 	}

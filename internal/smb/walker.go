@@ -24,11 +24,11 @@ func (c *Client) WalkShareWithOptions(share string, opts WalkOptions, fn func(Re
 		return fmt.Errorf("walk callback cannot be nil")
 	}
 
-	fs, err := c.mountShare(share)
+	fs, err := c.mountShareWithDeadline(share)
 	if err != nil {
 		return err
 	}
-	defer fs.Umount()
+	defer c.umountShareWithDeadline(fs)
 
 	type walkItem struct {
 		path  string
@@ -44,7 +44,9 @@ func (c *Client) WalkShareWithOptions(share string, opts WalkOptions, fn func(Re
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
+		clearDeadline := c.setOperationDeadline()
 		entries, err := fs.ReadDir(item.path)
+		clearDeadline()
 		if err != nil {
 			if isPermissionError(err) || os.IsNotExist(err) {
 				continue

@@ -60,6 +60,7 @@ type ScanConfig struct {
 	Resume                     bool     `yaml:"resume"`
 	SkipReachabilityCheck      bool     `yaml:"skip_reachability_check"`
 	ReachabilityTimeoutSeconds int      `yaml:"reachability_timeout_seconds"`
+	SMBOperationTimeoutSeconds int      `yaml:"smb_operation_timeout_seconds"`
 }
 
 type ArchiveConfig struct {
@@ -193,6 +194,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Scan.ReachabilityTimeoutSeconds <= 0 {
 		cfg.Scan.ReachabilityTimeoutSeconds = 3
+	}
+	if cfg.Scan.SMBOperationTimeoutSeconds <= 0 {
+		cfg.Scan.SMBOperationTimeoutSeconds = 30
 	}
 	if cfg.Archives.AutoZIPMaxSize <= 0 {
 		cfg.Archives.AutoZIPMaxSize = 10 * 1024 * 1024
@@ -412,6 +416,14 @@ func (s ScanConfig) ReachabilityTimeout() time.Duration {
 	timeout := s.ReachabilityTimeoutSeconds
 	if timeout <= 0 {
 		timeout = 3
+	}
+	return time.Duration(timeout) * time.Second
+}
+
+func (s ScanConfig) SMBOperationTimeout() time.Duration {
+	timeout := s.SMBOperationTimeoutSeconds
+	if timeout <= 0 {
+		timeout = 30
 	}
 	return time.Duration(timeout) * time.Second
 }

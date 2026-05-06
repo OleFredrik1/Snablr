@@ -31,6 +31,7 @@ func Default() Config {
 			Resume:                     false,
 			SkipReachabilityCheck:      false,
 			ReachabilityTimeoutSeconds: 3,
+			SMBOperationTimeoutSeconds: 30,
 		},
 		Archives: ArchiveConfig{
 			Enabled:                  true,
