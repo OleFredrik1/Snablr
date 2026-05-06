@@ -40,3 +40,19 @@ func TestRemotePathExcludedIsCaseInsensitiveForBareSegment(t *testing.T) {
 		t.Fatal("expected bare segment exclusion to be case insensitive")
 	}
 }
+
+func TestRemotePathExcludedTrimsSlashesAroundBareSegment(t *testing.T) {
+	t.Parallel()
+
+	if !remotePathExcluded(`\uq\local\XML\Inng\2\ok\file.txt`, `\xml\`) {
+		t.Fatal("expected slash-wrapped bare segment to exclude matching path segment")
+	}
+}
+
+func TestRemotePathExcludedDoesNotTreatSlashWrappedSegmentAsExtension(t *testing.T) {
+	t.Parallel()
+
+	if remotePathExcluded(`\uq\local\Inng\2\ok\file.xml`, `\xml\`) {
+		t.Fatal("did not expect slash-wrapped segment to match file extension")
+	}
+}

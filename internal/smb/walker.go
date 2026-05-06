@@ -114,7 +114,7 @@ func joinRemotePath(parent, name string) string {
 func normalizeRemotePath(path string) string {
 	path = strings.ReplaceAll(path, `\`, `/`)
 	path = strings.TrimPrefix(path, "./")
-	return strings.TrimPrefix(path, "/")
+	return strings.Trim(path, "/")
 }
 
 func isPermissionError(err error) bool {
