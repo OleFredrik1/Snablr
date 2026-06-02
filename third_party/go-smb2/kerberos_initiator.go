@@ -1,14 +1,18 @@
 package smb2
 
 import (
-	"encoding/asn1"
+	stdasn1 "encoding/asn1"
 	"fmt"
+	"time"
 
 	"github.com/hirochachacha/go-smb2/internal/spnego"
+	krbasn1 "github.com/jcmturner/gofork/encoding/asn1"
+	"github.com/jcmturner/gokrb5/v8/asn1tools"
 	krbclient "github.com/jcmturner/gokrb5/v8/client"
 	"github.com/jcmturner/gokrb5/v8/credentials"
 	krbcrypto "github.com/jcmturner/gokrb5/v8/crypto"
 	krbgssapi "github.com/jcmturner/gokrb5/v8/gssapi"
+	"github.com/jcmturner/gokrb5/v8/iana"
 	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
 	"github.com/jcmturner/gokrb5/v8/messages"
 	krbspnego "github.com/jcmturner/gokrb5/v8/spnego"
@@ -27,7 +31,7 @@ type KerberosInitiator struct {
 	acceptorSubkey    types.EncryptionKey
 }
 
-func (i *KerberosInitiator) oid() asn1.ObjectIdentifier {
+func (i *KerberosInitiator) oid() stdasn1.ObjectIdentifier {
 	return spnego.MsKerberosOid
 }
 
@@ -38,12 +42,39 @@ func (i *KerberosInitiator) initSecContext() ([]byte, error) {
 	}
 	i.serviceSessionKey = key
 
-	tokenClient := &krbclient.Client{Credentials: creds}
-	token, err := krbspnego.NewKRB5TokenAPREQ(tokenClient, tkt, key, nil, nil)
+	token, err := newSMBKRB5TokenAPREQ(creds, tkt, key)
 	if err != nil {
 		return nil, err
 	}
-	return token.Marshal()
+	return token, nil
+}
+
+func newSMBKRB5TokenAPREQ(creds *credentials.Credentials, tkt messages.Ticket, sessionKey types.EncryptionKey) ([]byte, error) {
+	if creds == nil {
+		return nil, fmt.Errorf("kerberos credentials are nil")
+	}
+	now := time.Now().UTC()
+	auth := types.Authenticator{
+		AVNO:   iana.PVNO,
+		CRealm: creds.Domain(),
+		CName:  creds.CName(),
+		Cusec:  int((now.UnixNano() / int64(time.Microsecond)) - (now.Unix() * 1e6)),
+		CTime:  now,
+	}
+	apReq, err := messages.NewAPReq(tkt, sessionKey, auth)
+	if err != nil {
+		return nil, err
+	}
+	apReqBytes, err := apReq.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	oidBytes, err := krbasn1.Marshal(krbgssapi.OIDKRB5.OID())
+	if err != nil {
+		return nil, err
+	}
+	token := append(append(oidBytes, []byte{0x01, 0x00}...), apReqBytes...)
+	return asn1tools.AddASNAppTag(token, 0), nil
 }
 
 func (i *KerberosInitiator) serviceTicket() (messages.Ticket, types.EncryptionKey, *credentials.Credentials, error) {
