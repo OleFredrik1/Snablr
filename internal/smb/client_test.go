@@ -3,6 +3,7 @@ package smb
 import (
 	"errors"
 	"net"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -54,6 +55,31 @@ func TestIsTimeoutError(t *testing.T) {
 	}
 	if IsTimeoutError(errors.New("permission denied")) {
 		t.Fatal("did not expect ordinary errors to be treated as timeouts")
+	}
+}
+
+func TestTreeConnectHostUsesTransportPeer(t *testing.T) {
+	t.Parallel()
+
+	addr, err := net.ResolveTCPAddr("tcp", "10.10.10.20:445")
+	if err != nil {
+		t.Fatalf("resolve test addr: %v", err)
+	}
+	if got := treeConnectHost(addr, "server.local"); got != "10.10.10.20" {
+		t.Fatalf("treeConnectHost = %q, want transport host", got)
+	}
+	if got := treeConnectHost(nil, "server.local"); got != "server.local" {
+		t.Fatalf("treeConnectHost fallback = %q, want server.local", got)
+	}
+}
+
+func TestMountHostCandidatesPreferTransportHost(t *testing.T) {
+	t.Parallel()
+
+	got := mountHostCandidates("10.10.10.20", "server.local")
+	want := []string{"10.10.10.20", "server.local", "server"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("mountHostCandidates = %#v, want %#v", got, want)
 	}
 }
 

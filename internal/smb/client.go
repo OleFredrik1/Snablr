@@ -63,6 +63,7 @@ type Client struct {
 
 	host       string
 	serverName string
+	treeHost   string
 	user       string
 	password   string
 	domain     string
@@ -132,7 +133,8 @@ func (c *Client) ConnectWithOptions(host, user, pass string, opts AuthOptions) e
 	}
 	connectGuard := newOperationGuard(conn, c.opTimeout)
 
-	dialer := &smb2.Dialer{Initiator: initiator, Host: serverName}
+	treeHost := treeConnectHost(conn.RemoteAddr(), serverName)
+	dialer := &smb2.Dialer{Initiator: initiator, Host: treeHost}
 	session, err := dialer.Dial(conn)
 	err = connectGuard.finish(err)
 	if err != nil {
@@ -142,6 +144,7 @@ func (c *Client) ConnectWithOptions(host, user, pass string, opts AuthOptions) e
 
 	c.host = host
 	c.serverName = serverName
+	c.treeHost = treeHost
 	c.user = username
 	c.password = pass
 	c.domain = domain
@@ -177,6 +180,7 @@ func (c *Client) closeLocked() error {
 
 	c.host = ""
 	c.serverName = ""
+	c.treeHost = ""
 	c.user = ""
 	c.password = ""
 	c.domain = ""
@@ -200,18 +204,18 @@ func isIgnorableCloseError(err error) bool {
 		strings.Contains(message, "connection already closed")
 }
 
-func (c *Client) connectedSession() (*smb2.Session, string, error) {
+func (c *Client) connectedSession() (*smb2.Session, string, string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	if c.session == nil {
-		return nil, "", ErrNotConnected
+		return nil, "", "", ErrNotConnected
 	}
-	return c.session, c.serverName, nil
+	return c.session, c.serverName, c.treeHost, nil
 }
 
 func (c *Client) mountShare(share string) (*smb2.Share, error) {
-	session, serverName, err := c.connectedSession()
+	session, serverName, treeHost, err := c.connectedSession()
 	if err != nil {
 		return nil, err
 	}
@@ -220,12 +224,16 @@ func (c *Client) mountShare(share string) (*smb2.Share, error) {
 		return nil, fmt.Errorf("share cannot be empty")
 	}
 
-	mountPath := fmt.Sprintf(`\\%s\%s`, serverName, share)
-	fs, err := session.Mount(mountPath)
-	if err != nil {
-		return nil, fmt.Errorf("mount %s: %w", mountPath, err)
+	var mountErrs []error
+	for _, host := range mountHostCandidates(treeHost, serverName) {
+		mountPath := fmt.Sprintf(`\\%s\%s`, host, share)
+		fs, err := session.Mount(mountPath)
+		if err == nil {
+			return fs, nil
+		}
+		mountErrs = append(mountErrs, fmt.Errorf("mount %s: %w", mountPath, err))
 	}
-	return fs, nil
+	return nil, errors.Join(mountErrs...)
 }
 
 func (c *Client) mountShareWithDeadline(share string) (*smb2.Share, error) {
@@ -334,6 +342,52 @@ func splitHost(host string) (serverName, dialAddr string, err error) {
 	}
 
 	return host, net.JoinHostPort(host, defaultPort), nil
+}
+
+func treeConnectHost(remoteAddr net.Addr, fallback string) string {
+	if remoteAddr != nil {
+		if host, _, err := net.SplitHostPort(remoteAddr.String()); err == nil && host != "" {
+			return host
+		}
+	}
+	return fallback
+}
+
+func mountHostCandidates(primary, fallback string) []string {
+	var hosts []string
+	add := func(host string) {
+		host = strings.TrimSpace(host)
+		if host == "" {
+			return
+		}
+		for _, existing := range hosts {
+			if strings.EqualFold(existing, host) {
+				return
+			}
+		}
+		hosts = append(hosts, host)
+	}
+
+	add(primary)
+	add(fallback)
+	if short := shortHostName(fallback); short != fallback {
+		add(short)
+		add(strings.ToUpper(short))
+	}
+	return hosts
+}
+
+func shortHostName(host string) string {
+	if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+		host = parsedHost
+	}
+	if net.ParseIP(host) != nil {
+		return host
+	}
+	if idx := strings.IndexByte(host, '.'); idx > 0 {
+		return host[:idx]
+	}
+	return host
 }
 
 func splitUser(user string) (domain string, username string) {

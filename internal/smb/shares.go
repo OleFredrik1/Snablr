@@ -35,7 +35,7 @@ func ADShareType(name string) (string, bool) {
 }
 
 func (c *Client) ListShares() ([]ShareInfo, error) {
-	session, _, err := c.connectedSession()
+	session, _, _, err := c.connectedSession()
 	if err != nil {
 		return nil, err
 	}
