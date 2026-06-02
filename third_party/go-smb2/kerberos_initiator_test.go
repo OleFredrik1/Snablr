@@ -5,9 +5,12 @@ import (
 	"testing"
 
 	"github.com/hirochachacha/go-smb2/internal/spnego"
+	"github.com/jcmturner/gokrb5/v8/credentials"
 	krbgssapi "github.com/jcmturner/gokrb5/v8/gssapi"
 	"github.com/jcmturner/gokrb5/v8/iana/etypeID"
 	"github.com/jcmturner/gokrb5/v8/iana/keyusage"
+	"github.com/jcmturner/gokrb5/v8/iana/nametype"
+	"github.com/jcmturner/gokrb5/v8/messages"
 	"github.com/jcmturner/gokrb5/v8/types"
 )
 
@@ -44,6 +47,39 @@ func TestKerberosInitiatorSessionKeyTruncatesServiceKey(t *testing.T) {
 	got := initiator.sessionKey()
 	if !bytes.Equal(got, serviceKey[:16]) {
 		t.Fatalf("sessionKey = %x, want first 16 bytes of service key", got)
+	}
+}
+
+func TestKerberosInitiatorInitSecContextUsesProvidedTicket(t *testing.T) {
+	t.Parallel()
+
+	key := types.EncryptionKey{
+		KeyType:  etypeID.AES128_CTS_HMAC_SHA1_96,
+		KeyValue: bytes.Repeat([]byte{0x42}, 16),
+	}
+	initiator := &KerberosInitiator{
+		Credentials: credentials.New("user", "EXAMPLE.COM"),
+		Ticket: messages.Ticket{
+			TktVNO: 5,
+			Realm:  "EXAMPLE.COM",
+			SName:  types.NewPrincipalName(nametype.KRB_NT_SRV_INST, "cifs/fileserver.example.com"),
+			EncPart: types.EncryptedData{
+				EType:  etypeID.AES128_CTS_HMAC_SHA1_96,
+				Cipher: []byte{0x01},
+			},
+		},
+		SessionKey: key,
+	}
+
+	token, err := initiator.initSecContext()
+	if err != nil {
+		t.Fatalf("initSecContext returned error: %v", err)
+	}
+	if len(token) == 0 {
+		t.Fatal("expected AP-REQ token")
+	}
+	if !bytes.Equal(initiator.serviceSessionKey.KeyValue, key.KeyValue) {
+		t.Fatalf("serviceSessionKey = %x, want %x", initiator.serviceSessionKey.KeyValue, key.KeyValue)
 	}
 }
 
