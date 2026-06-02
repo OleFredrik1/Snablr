@@ -28,6 +28,7 @@ func (c *spnegoClient) oid() asn1.ObjectIdentifier {
 }
 
 func (c *spnegoClient) initSecContext() (negTokenInitBytes []byte, err error) {
+	c.selectedMech = c.mechs[0]
 	mechToken, err := c.mechs[0].initSecContext()
 	if err != nil {
 		return nil, err

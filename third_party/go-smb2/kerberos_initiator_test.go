@@ -11,12 +11,12 @@ import (
 	"github.com/jcmturner/gokrb5/v8/types"
 )
 
-func TestKerberosInitiatorUsesKerberosOID(t *testing.T) {
+func TestKerberosInitiatorUsesMicrosoftKerberosOID(t *testing.T) {
 	t.Parallel()
 
 	initiator := &KerberosInitiator{}
-	if !initiator.oid().Equal(spnego.KerberosOid) {
-		t.Fatalf("KerberosInitiator oid = %v, want %v", initiator.oid(), spnego.KerberosOid)
+	if !initiator.oid().Equal(spnego.MsKerberosOid) {
+		t.Fatalf("KerberosInitiator oid = %v, want %v", initiator.oid(), spnego.MsKerberosOid)
 	}
 }
 
@@ -30,6 +30,20 @@ func TestKerberosInitiatorSessionKeyPrefersAcceptorSubkey(t *testing.T) {
 
 	if got := initiator.sessionKey(); !bytes.Equal(got, []byte("acceptor")) {
 		t.Fatalf("sessionKey = %q, want acceptor", got)
+	}
+}
+
+func TestKerberosInitiatorSessionKeyTruncatesServiceKey(t *testing.T) {
+	t.Parallel()
+
+	serviceKey := bytes.Repeat([]byte{0x42}, 32)
+	initiator := &KerberosInitiator{
+		serviceSessionKey: types.EncryptionKey{KeyValue: serviceKey},
+	}
+
+	got := initiator.sessionKey()
+	if !bytes.Equal(got, serviceKey[:16]) {
+		t.Fatalf("sessionKey = %x, want first 16 bytes of service key", got)
 	}
 }
 

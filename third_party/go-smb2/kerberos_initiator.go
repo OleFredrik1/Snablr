@@ -24,7 +24,7 @@ type KerberosInitiator struct {
 }
 
 func (i *KerberosInitiator) oid() asn1.ObjectIdentifier {
-	return spnego.KerberosOid
+	return spnego.MsKerberosOid
 }
 
 func (i *KerberosInitiator) initSecContext() ([]byte, error) {
@@ -41,11 +41,7 @@ func (i *KerberosInitiator) initSecContext() ([]byte, error) {
 	}
 	i.serviceSessionKey = key
 
-	token, err := krbspnego.NewKRB5TokenAPREQ(i.Client, tkt, key, []int{
-		krbgssapi.ContextFlagInteg,
-		krbgssapi.ContextFlagConf,
-		krbgssapi.ContextFlagMutual,
-	}, nil)
+	token, err := krbspnego.NewKRB5TokenAPREQ(i.Client, tkt, key, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +107,9 @@ func (i *KerberosInitiator) sessionKey() []byte {
 	key, ok := i.contextKey()
 	if !ok {
 		return nil
+	}
+	if len(i.acceptorSubkey.KeyValue) == 0 && len(key.KeyValue) > 16 {
+		return append([]byte(nil), key.KeyValue[:16]...)
 	}
 	return append([]byte(nil), key.KeyValue...)
 }
