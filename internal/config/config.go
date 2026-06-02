@@ -36,6 +36,8 @@ type ScanConfig struct {
 	Profile                    string   `yaml:"profile"`
 	Username                   string   `yaml:"username"`
 	Password                   string   `yaml:"password"`
+	SMBAuth                    string   `yaml:"smb_auth"`
+	SMBCCache                  string   `yaml:"smb_ccache"`
 	Share                      []string `yaml:"share"`
 	ExcludeShare               []string `yaml:"exclude_share"`
 	Path                       []string `yaml:"path"`
@@ -197,6 +199,9 @@ func applyDefaults(cfg *Config) {
 	}
 	if cfg.Scan.SMBOperationTimeoutSeconds <= 0 {
 		cfg.Scan.SMBOperationTimeoutSeconds = 30
+	}
+	if strings.TrimSpace(cfg.Scan.SMBAuth) == "" {
+		cfg.Scan.SMBAuth = "ntlm"
 	}
 	if cfg.Archives.AutoZIPMaxSize <= 0 {
 		cfg.Archives.AutoZIPMaxSize = 10 * 1024 * 1024

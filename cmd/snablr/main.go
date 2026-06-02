@@ -76,6 +76,8 @@ func runScan(args []string) error {
 	fs.StringVar(&username, "user", "", "Alias for --username")
 	fs.StringVar(&password, "password", "", "Password for SMB and LDAP authentication")
 	fs.StringVar(&password, "pass", "", "Alias for --password")
+	smbAuth := fs.String("smb-auth", "", "SMB auth method: ntlm or kerberos")
+	smbCCache := fs.String("smb-ccache", "", "Path to FILE Kerberos credential cache for --smb-auth kerberos")
 
 	var shareFilters multiValueFlag
 	var excludeShareFilters multiValueFlag
@@ -147,6 +149,8 @@ func runScan(args []string) error {
 		Profile:                    *profile,
 		Username:                   username,
 		Password:                   password,
+		SMBAuth:                    *smbAuth,
+		SMBCCache:                  *smbCCache,
 		Share:                      append([]string{}, shareFilters...),
 		ExcludeShare:               append([]string{}, excludeShareFilters...),
 		Path:                       append([]string{}, pathFilters...),
@@ -541,6 +545,7 @@ func printScanUsage(fs *flag.FlagSet) {
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  snablr scan --targets 10.0.0.5 --username USER --password PASS")
+	fmt.Println("  snablr scan --targets fileserver.example.local --smb-auth kerberos --smb-ccache /tmp/krb5cc_1000 --no-ldap")
 	fmt.Println("  snablr scan --username USER --password PASS")
 	fmt.Println("  snablr scan --domain example.local --dc dc01.example.local --username USER --password PASS")
 	fmt.Println("  snablr scan --dc ldaps://dc01.example.local --ldap-transport ldaps --ldap-auth simple --username USER --password PASS")

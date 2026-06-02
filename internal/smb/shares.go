@@ -40,9 +40,9 @@ func (c *Client) ListShares() ([]ShareInfo, error) {
 		return nil, err
 	}
 
-	clearDeadline := c.setOperationDeadline()
+	guard := c.beginOperation()
 	shares, err := session.ListSharenames()
-	clearDeadline()
+	err = guard.finish(err)
 	if err != nil {
 		return nil, fmt.Errorf("list shares: %w", err)
 	}
@@ -80,9 +80,9 @@ func (c *Client) checkShareAccess(share string) error {
 	}
 	defer c.umountShareWithDeadline(fs)
 
-	clearDeadline := c.setOperationDeadline()
+	guard := c.beginOperation()
 	_, err = fs.ReadDir("")
-	clearDeadline()
+	err = guard.finish(err)
 	if err == nil || os.IsNotExist(err) {
 		return nil
 	}

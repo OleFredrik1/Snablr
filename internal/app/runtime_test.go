@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strings"
 	"testing"
 
 	"snablr/internal/config"
@@ -63,6 +64,49 @@ func TestApplyScanOverridesAppliesSMBOperationTimeout(t *testing.T) {
 
 	if cfg.Scan.SMBOperationTimeoutSeconds != 12 {
 		t.Fatalf("expected SMB operation timeout override, got %d", cfg.Scan.SMBOperationTimeoutSeconds)
+	}
+}
+
+func TestApplyScanOverridesAppliesSMBAuthOverrides(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default()
+	applyScanOverrides(&cfg, ScanOptions{
+		SMBAuth:   "kerberos",
+		SMBCCache: "/tmp/krb5cc_test",
+	})
+
+	if cfg.Scan.SMBAuth != "kerberos" || cfg.Scan.SMBCCache != "/tmp/krb5cc_test" {
+		t.Fatalf("expected SMB auth overrides to apply, got %#v", cfg.Scan)
+	}
+}
+
+func TestValidateScanConfigAllowsSMBKerberosWithoutPassword(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default()
+	cfg.Scan.SMBAuth = "kerberos"
+	cfg.Scan.Username = ""
+	cfg.Scan.Password = ""
+	cfg.Scan.Targets = []string{"fileserver.example.local"}
+	cfg.Scan.Profile = ""
+
+	if err := validateScanConfig(cfg); err != nil {
+		t.Fatalf("validateScanConfig returned error: %v", err)
+	}
+}
+
+func TestValidateScanConfigRejectsUnsupportedSMBAuth(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default()
+	cfg.Scan.Username = "user"
+	cfg.Scan.Password = "pass"
+	cfg.Scan.SMBAuth = "bad"
+	cfg.Scan.Profile = ""
+
+	if err := validateScanConfig(cfg); err == nil || !strings.Contains(err.Error(), "unsupported smb_auth") {
+		t.Fatalf("expected unsupported smb_auth error, got %v", err)
 	}
 }
 

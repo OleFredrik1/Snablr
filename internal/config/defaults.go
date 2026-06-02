@@ -16,6 +16,8 @@ func Default() Config {
 			MaxDepth:                   0,
 			WorkerCount:                0,
 			MaxFileSize:                10 * 1024 * 1024,
+			SMBAuth:                    "ntlm",
+			SMBCCache:                  "",
 			NoLDAP:                     false,
 			Domain:                     "",
 			DomainController:           "",

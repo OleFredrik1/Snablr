@@ -335,7 +335,10 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 	client.SetOperationTimeout(cfg.Scan.SMBOperationTimeout())
 	defer client.Close()
 
-	if err := client.Connect(host, cfg.Scan.Username, cfg.Scan.Password); err != nil {
+	if err := client.ConnectWithOptions(host, cfg.Scan.Username, cfg.Scan.Password, smb.AuthOptions{
+		Method:     cfg.Scan.SMBAuth,
+		CCachePath: cfg.Scan.SMBCCache,
+	}); err != nil {
 		if smb.IsTimeoutError(err) {
 			return fmt.Errorf("%w: %s: connect failed: %v", errHostSMBTimeout, host, err)
 		}

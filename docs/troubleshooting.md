@@ -143,6 +143,8 @@ Connections fail during share enumeration or file reads.
 
 - invalid username or password
 - incorrect domain-qualified username
+- Kerberos cache is missing, expired, or not a FILE cache when `smb_auth=kerberos`
+- Kerberos target is an IP address or alias without a matching `cifs/<host>` SPN
 - SMB signing or policy requirements outside the current access path
 - host reachable, but credentials do not have share access
 
@@ -150,6 +152,7 @@ Connections fail during share enumeration or file reads.
 
 - try `EXAMPLE\user`
 - try `user@domain`
+- for Kerberos, run `klist`, confirm the cache path, and target the server FQDN rather than an IP address
 - confirm the account can access the share manually
 - use `--skip-reachability-check` only if you are sure the host is reachable and want to bypass the TCP probe
 

@@ -73,6 +73,12 @@ func applyScanOverrides(cfg *config.Config, opts ScanOptions) {
 	if opts.Password != "" {
 		cfg.Scan.Password = opts.Password
 	}
+	if strings.TrimSpace(opts.SMBAuth) != "" {
+		cfg.Scan.SMBAuth = opts.SMBAuth
+	}
+	if strings.TrimSpace(opts.SMBCCache) != "" {
+		cfg.Scan.SMBCCache = opts.SMBCCache
+	}
 	if len(opts.Share) > 0 {
 		cfg.Scan.Share = append([]string{}, opts.Share...)
 	}
@@ -250,11 +256,17 @@ func applyDiscoverOverrides(cfg *config.Config, opts DiscoverOptions) {
 }
 
 func validateScanConfig(cfg config.Config) error {
-	if strings.TrimSpace(cfg.Scan.Username) == "" {
-		return fmt.Errorf("missing SMB username: set scan.username in config or pass --username (run `snablr scan --help` for examples)")
+	smbAuth := normalizeAuthMethod(cfg.Scan.SMBAuth)
+	if smbAuth == "" {
+		return fmt.Errorf("unsupported smb_auth %q (expected ntlm or kerberos)", cfg.Scan.SMBAuth)
 	}
-	if cfg.Scan.Password == "" {
-		return fmt.Errorf("missing SMB password: set scan.password in config or pass --password (run `snablr scan --help` for examples)")
+	if smbAuth == "ntlm" {
+		if strings.TrimSpace(cfg.Scan.Username) == "" {
+			return fmt.Errorf("missing SMB username: set scan.username in config or pass --username (run `snablr scan --help` for examples)")
+		}
+		if cfg.Scan.Password == "" {
+			return fmt.Errorf("missing SMB password: set scan.password in config or pass --password (run `snablr scan --help` for examples)")
+		}
 	}
 	if _, err := cfg.Scan.MaxScanDuration(); err != nil {
 		return err
@@ -371,13 +383,33 @@ func validateDiscoverConfig(scanCfg config.ScanConfig) error {
 		return fmt.Errorf("no targets available: provide --targets/--targets-file or allow LDAP discovery by removing --no-ldap")
 	}
 	needsLDAPCreds := (!scanCfg.NoLDAP && len(scanCfg.Targets) == 0 && strings.TrimSpace(scanCfg.TargetsFile) == "") || scanCfg.DiscoverDFS
-	if needsLDAPCreds && strings.TrimSpace(scanCfg.Username) == "" {
+	if needsLDAPCreds && !ldapAuthCanUseCurrentCredentials(scanCfg.LDAPAuth) && strings.TrimSpace(scanCfg.Username) == "" {
 		return fmt.Errorf("ldap discovery needs credentials: set scan.username in config or pass --username")
 	}
-	if needsLDAPCreds && scanCfg.Password == "" {
+	if needsLDAPCreds && !ldapAuthCanUseCurrentCredentials(scanCfg.LDAPAuth) && scanCfg.Password == "" {
 		return fmt.Errorf("ldap discovery needs credentials: set scan.password in config or pass --password")
 	}
 	return nil
+}
+
+func normalizeAuthMethod(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "", "ntlm":
+		return "ntlm"
+	case "kerberos", "krb5", "gssapi":
+		return "kerberos"
+	default:
+		return ""
+	}
+}
+
+func ldapAuthCanUseCurrentCredentials(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "gssapi", "kerberos", "negotiate", "sspi":
+		return true
+	default:
+		return false
+	}
 }
 
 func RunRulesList(opts RulesOptions) error {

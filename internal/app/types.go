@@ -7,6 +7,8 @@ type ScanOptions struct {
 	Profile                    string
 	Username                   string
 	Password                   string
+	SMBAuth                    string
+	SMBCCache                  string
 	Share                      []string
 	ExcludeShare               []string
 	Path                       []string

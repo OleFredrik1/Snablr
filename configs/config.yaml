@@ -9,6 +9,8 @@ scan:
   profile: default
   username: ""
   password: ""
+  smb_auth: ntlm
+  smb_ccache: ""
   share: []
   exclude_share: []
   path: []

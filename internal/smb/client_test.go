@@ -3,7 +3,9 @@ package smb
 import (
 	"errors"
 	"net"
+	"strings"
 	"testing"
+	"time"
 )
 
 type timeoutErr struct{}
@@ -58,3 +60,43 @@ func TestIsTimeoutError(t *testing.T) {
 type contextDeadlineErr struct{}
 
 func (contextDeadlineErr) Error() string { return "context deadline exceeded" }
+
+func TestConnectTimesOutWhenServerAcceptsWithoutSMB(t *testing.T) {
+	t.Parallel()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		if errors.Is(err, net.ErrClosed) || strings.Contains(strings.ToLower(err.Error()), "operation not permitted") {
+			t.Skipf("local sockets unavailable: %v", err)
+		}
+		t.Fatalf("listen: %v", err)
+	}
+	defer listener.Close()
+
+	done := make(chan struct{})
+	defer close(done)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		<-done
+	}()
+
+	client := NewClient()
+	client.SetOperationTimeout(50 * time.Millisecond)
+
+	start := time.Now()
+	err = client.Connect(listener.Addr().String(), "user", "pass")
+	elapsed := time.Since(start)
+	if err == nil {
+		t.Fatal("expected connect to fail")
+	}
+	if !IsTimeoutError(err) {
+		t.Fatalf("expected timeout error, got %v", err)
+	}
+	if elapsed > time.Second {
+		t.Fatalf("expected connect watchdog to unblock promptly, took %s", elapsed)
+	}
+}

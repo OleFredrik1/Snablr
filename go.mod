@@ -4,6 +4,8 @@ go 1.24.0
 
 replace github.com/mattn/go-sqlite3 => ./third_party/go-sqlite3
 
+replace github.com/hirochachacha/go-smb2 => ./third_party/go-smb2
+
 require gopkg.in/yaml.v3 v3.0.1
 
 require (

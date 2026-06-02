@@ -44,9 +44,9 @@ func (c *Client) WalkShareWithOptions(share string, opts WalkOptions, fn func(Re
 		item := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		clearDeadline := c.setOperationDeadline()
+		guard := c.beginOperation()
 		entries, err := fs.ReadDir(item.path)
-		clearDeadline()
+		err = guard.finish(err)
 		if err != nil {
 			if isPermissionError(err) || os.IsNotExist(err) {
 				continue

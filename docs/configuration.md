@@ -93,9 +93,13 @@ Behavior:
 ### Credentials
 
 - `username`
-  SMB and LDAP username
+  SMB and LDAP username. Required for SMB when `smb_auth` is `ntlm`.
 - `password`
-  SMB and LDAP password
+  SMB and LDAP password. Required for SMB when `smb_auth` is `ntlm`.
+- `smb_auth`
+  SMB authentication method: `ntlm` or `kerberos`
+- `smb_ccache`
+  Optional path to a FILE Kerberos credential cache for `smb_auth: kerberos`; if empty, Snablr uses `KRB5CCNAME` or `/tmp/krb5cc_<uid>`
 
 Committed configs should use placeholders, not real secrets.
 
@@ -103,6 +107,12 @@ Typical override pattern:
 
 ```bash
 snablr scan --config examples/config.domain.yaml --user 'DOMAIN\user' --pass 'REPLACE_ME'
+```
+
+Kerberos ccache pattern:
+
+```bash
+KRB5_CONFIG=/etc/krb5.conf snablr scan --targets fileserver.example.local --smb-auth kerberos --smb-ccache /tmp/krb5cc_1000 --no-ldap
 ```
 
 ### LDAP Discovery
