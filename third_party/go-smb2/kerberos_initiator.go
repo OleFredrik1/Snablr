@@ -131,6 +131,9 @@ func (i *KerberosInitiator) sessionKey() []byte {
 	if !ok {
 		return nil
 	}
+	if len(i.acceptorSubkey.KeyValue) == 0 && len(key.KeyValue) > 16 {
+		return append([]byte(nil), key.KeyValue[:16]...)
+	}
 	return append([]byte(nil), key.KeyValue...)
 }
 
