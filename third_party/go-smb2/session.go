@@ -111,6 +111,7 @@ func sessionSetup(conn *conn, i Initiator, ctx context.Context) (*session, error
 		if err := s.setupSessionSecurity(spnego.sessionKey(), nil); err != nil {
 			return nil, err
 		}
+		conn.session = s
 		s.enableSession()
 		return s, nil
 	}
