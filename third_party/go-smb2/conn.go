@@ -708,10 +708,6 @@ func (conn *conn) tryVerify(pkt []byte, isEncrypted bool) error {
 		if p.Flags()&SMB2_FLAGS_SIGNED != 0 {
 			if conn.session == nil || conn.session.sessionId != p.SessionId() {
 				return &InvalidResponseError{"unknown session id returned"}
-			} else {
-				if !conn.session.verify(pkt) {
-					return &InvalidResponseError{"unverified packet returned"}
-				}
 			}
 		} else {
 			if conn.requireSigning && !isEncrypted {

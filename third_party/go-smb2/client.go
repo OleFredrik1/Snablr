@@ -24,6 +24,7 @@ type Dialer struct {
 	MaxCreditBalance uint16 // if it's zero, clientMaxCreditBalance is used. (See feature.go for more details)
 	Negotiator       Negotiator
 	Initiator        Initiator
+	Host             string // server name to use when constructing UNC paths
 }
 
 // Dial performs negotiation and authentication.
@@ -69,7 +70,11 @@ func (d *Dialer) DialContext(ctx context.Context, tcpConn net.Conn) (*Session, e
 		return nil, err
 	}
 
-	return &Session{s: s, ctx: context.Background(), addr: tcpConn.RemoteAddr().String()}, nil
+	addr := d.Host
+	if addr == "" {
+		addr = tcpConn.RemoteAddr().String()
+	}
+	return &Session{s: s, ctx: context.Background(), addr: addr}, nil
 }
 
 // Session represents a SMB session.
@@ -119,7 +124,7 @@ func (c *Session) ListSharenames() ([]string, error) {
 
 	fs, err := c.Mount(fmt.Sprintf(`\\%s\IPC$`, servername))
 	if err != nil {
-		return nil, err
+		return nil, &os.PathError{Op: "mount IPC$", Path: servername, Err: err}
 	}
 	defer fs.Umount()
 
@@ -127,7 +132,7 @@ func (c *Session) ListSharenames() ([]string, error) {
 
 	f, err := fs.OpenFile("srvsvc", os.O_RDWR, 0666)
 	if err != nil {
-		return nil, err
+		return nil, &os.PathError{Op: "open srvsvc", Path: servername, Err: err}
 	}
 	defer f.Close()
 

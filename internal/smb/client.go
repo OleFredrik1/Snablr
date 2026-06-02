@@ -132,7 +132,7 @@ func (c *Client) ConnectWithOptions(host, user, pass string, opts AuthOptions) e
 	}
 	connectGuard := newOperationGuard(conn, c.opTimeout)
 
-	dialer := &smb2.Dialer{Initiator: initiator}
+	dialer := &smb2.Dialer{Initiator: initiator, Host: serverName}
 	session, err := dialer.Dial(conn)
 	err = connectGuard.finish(err)
 	if err != nil {

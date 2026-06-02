@@ -99,10 +99,12 @@ func sessionSetup(conn *conn, i Initiator, ctx context.Context) (*session, error
 			h.Write(rr.pkt)
 			h.Sum(s.preauthIntegrityHashValue[:0])
 
-			h.Reset()
-			h.Write(s.preauthIntegrityHashValue[:])
-			h.Write(pkt)
-			h.Sum(s.preauthIntegrityHashValue[:0])
+			if status != STATUS_SUCCESS {
+				h.Reset()
+				h.Write(s.preauthIntegrityHashValue[:])
+				h.Write(pkt)
+				h.Sum(s.preauthIntegrityHashValue[:0])
+			}
 		}
 
 	}
