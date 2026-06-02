@@ -450,7 +450,7 @@ func (conn *conn) makeRequestResponse(req Packet, tc *treeConn, ctx context.Cont
 				if err != nil {
 					return nil, &InternalError{err.Error()}
 				}
-			} else if s.conn.requireSigning {
+			} else {
 				if s.sessionFlags&(SMB2_SESSION_FLAG_IS_GUEST|SMB2_SESSION_FLAG_IS_NULL) == 0 {
 					pkt = s.sign(pkt)
 				}
