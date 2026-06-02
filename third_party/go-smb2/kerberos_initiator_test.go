@@ -37,7 +37,7 @@ func TestKerberosInitiatorSessionKeyPrefersAcceptorSubkey(t *testing.T) {
 	}
 }
 
-func TestKerberosInitiatorSessionKeyUsesFullServiceKey(t *testing.T) {
+func TestKerberosInitiatorSessionKeyUsesFirst16BytesOfServiceKey(t *testing.T) {
 	t.Parallel()
 
 	serviceKey := bytes.Repeat([]byte{0x42}, 32)
@@ -46,8 +46,8 @@ func TestKerberosInitiatorSessionKeyUsesFullServiceKey(t *testing.T) {
 	}
 
 	got := initiator.sessionKey()
-	if !bytes.Equal(got, serviceKey) {
-		t.Fatalf("sessionKey = %x, want full service key", got)
+	if !bytes.Equal(got, serviceKey[:16]) {
+		t.Fatalf("sessionKey = %x, want first 16 bytes of service key", got)
 	}
 }
 

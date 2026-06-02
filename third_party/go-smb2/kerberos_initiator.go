@@ -162,7 +162,11 @@ func (i *KerberosInitiator) sessionKey() []byte {
 	if !ok {
 		return nil
 	}
-	return append([]byte(nil), key.KeyValue...)
+	keyValue := key.KeyValue
+	if len(i.acceptorSubkey.KeyValue) == 0 && len(keyValue) > 16 {
+		keyValue = keyValue[:16]
+	}
+	return append([]byte(nil), keyValue...)
 }
 
 func (i *KerberosInitiator) contextKey() (types.EncryptionKey, bool) {
