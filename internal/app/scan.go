@@ -345,12 +345,18 @@ func scanHost(ctx context.Context, host, source string, dfsTargets []discovery.D
 		return fmt.Errorf("%s: connect failed: %w", host, err)
 	}
 
-	shares, err := client.ListShares()
-	if err != nil {
-		if smb.IsTimeoutError(err) {
-			return fmt.Errorf("%w: %s: list shares failed: %v", errHostSMBTimeout, host, err)
+	shares := explicitScanShares(cfg.Scan)
+	if len(shares) > 0 {
+		logger.Infof("using %d explicit share(s) for %s; skipping share enumeration", len(shares), host)
+	} else {
+		var err error
+		shares, err = client.ListShares()
+		if err != nil {
+			if smb.IsTimeoutError(err) {
+				return fmt.Errorf("%w: %s: list shares failed: %v", errHostSMBTimeout, host, err)
+			}
+			return fmt.Errorf("%s: list shares failed: %w", host, err)
 		}
-		return fmt.Errorf("%s: list shares failed: %w", host, err)
 	}
 
 	dfsHints := dfsHintsForHost(host, dfsTargets)
@@ -656,6 +662,33 @@ func scanShareAllowed(share string, cfg config.ScanConfig) bool {
 		}
 	}
 	return true
+}
+
+func explicitScanShares(cfg config.ScanConfig) []smb.ShareInfo {
+	if len(cfg.Share) == 0 {
+		return nil
+	}
+	shares := make([]smb.ShareInfo, 0, len(cfg.Share))
+	seen := make(map[string]struct{}, len(cfg.Share))
+	for _, share := range cfg.Share {
+		name := strings.TrimSpace(share)
+		if name == "" {
+			continue
+		}
+		key := strings.ToLower(name)
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		info := smb.ShareInfo{Name: name}
+		if adType, ok := smb.ADShareType(name); ok {
+			info.Type = adType
+		} else if smb.IsAdministrativeShare(name) {
+			info.Type = "disk-hidden"
+		}
+		shares = append(shares, info)
+	}
+	return shares
 }
 
 func dfsHintsForHost(host string, targets []discovery.DFSTarget) map[string]discovery.DFSTarget {

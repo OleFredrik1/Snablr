@@ -110,6 +110,24 @@ func TestValidateScanConfigRejectsUnsupportedSMBAuth(t *testing.T) {
 	}
 }
 
+func TestExplicitScanSharesNormalizesConfiguredShares(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.Default().Scan
+	cfg.Share = []string{" C$ ", "c$", "", "SYSVOL"}
+
+	shares := explicitScanShares(cfg)
+	if len(shares) != 2 {
+		t.Fatalf("expected 2 explicit shares, got %#v", shares)
+	}
+	if shares[0].Name != "C$" || shares[0].Type != "disk-hidden" {
+		t.Fatalf("expected C$ disk-hidden share, got %#v", shares[0])
+	}
+	if shares[1].Name != "SYSVOL" || shares[1].Type != "sysvol" {
+		t.Fatalf("expected SYSVOL sysvol share, got %#v", shares[1])
+	}
+}
+
 func TestApplyScanOverridesAppliesWIMOverridesAfterProfileSelection(t *testing.T) {
 	t.Parallel()
 
